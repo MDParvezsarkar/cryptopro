@@ -1,0 +1,8 @@
+{
+  "iv": "1h",
+  "scan": { "on": true, "top": 20, "minScore": 4 },
+  "smc": { "on": true, "tf": "1h", "top": 30, "budget": 1000, "risk": 1, "maxDay": 5, "minWin": 70 },
+  "coins": [
+    { "s": "ZEC", "tp": 10, "sl": 10, "entries": [ { "p": 300, "u": 100 }, { "p": 250, "u": 200 } ] }
+  ]
+}

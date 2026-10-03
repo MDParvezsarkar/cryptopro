@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Coin Signal Tracker</title>
+<style>
+:root{--bg:#0b0e11;--c:#181a20;--t:#eaecef;--m:#9aa4b2;--g:#0ecb81;--r:#f6465d;--y:#fcd535}
+*{box-sizing:border-box}body{margin:auto;background:var(--bg);color:var(--t);font:15px Arial,sans-serif;padding:14px;max-width:1150px}
+h1{font-size:21px;margin:0 0 4px}input,select,button{background:#2b3139;color:var(--t);border:1px solid #3a4150;border-radius:8px;padding:9px 11px;font:inherit}
+button{cursor:pointer;background:var(--y);color:#000;font-weight:bold;border:0}
+.top{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}.top input{flex:1;min-width:140px}
+.chips button{background:#2b3139;color:var(--t);font-weight:normal;padding:6px 10px;margin:0 4px 4px 0}
+#st{font-size:13px;padding:4px 10px;border-radius:20px;background:#2b3139}.ok{color:var(--g)}.bad{color:var(--r)}.wait{color:var(--y)}
+#warn{display:none;background:#3b1c22;border:1px solid var(--r);padding:10px;border-radius:8px;margin:10px 0;line-height:1.5}
+#sum{background:var(--c);border-radius:10px;padding:12px;margin:10px 0;font-size:14px}
+#list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.card{background:var(--c);border-radius:12px;padding:14px;border:1px solid #2b3139}
+.h{display:flex;gap:8px;align-items:center}.h b{font-size:17px;flex:1}.h a{color:var(--y);font-size:13px;text-decoration:none}
+.x{background:none!important;color:var(--m)!important;padding:2px 8px!important}
+.p{font-size:28px;font-weight:bold}.chg{margin-left:8px;font-size:13px}.up{color:var(--g)}.dn{color:var(--r)}
+.act{border-radius:10px;padding:10px;margin:10px 0;text-align:center}.act b{font-size:22px;display:block}.act span{font-size:13px}
+.buy{background:var(--g);color:#000}.sell{background:var(--r);color:#fff}.hold{background:#2b3139;color:var(--m)}
+.blink{animation:bl 1s infinite}@keyframes bl{50%{opacity:.25}}
+details{margin-top:8px;font-size:13px;color:var(--m)}summary{cursor:pointer;color:var(--t);font-weight:bold;padding:4px 0}
+.why{margin:4px 0;padding-left:18px;line-height:1.5}.pos{line-height:1.7;color:var(--t)}
+.pill{display:inline-block;padding:5px 10px;border-radius:6px;font-weight:bold;margin-top:4px}
+.en span{display:inline-block;margin:3px 6px 3px 0;background:#2b3139;padding:3px 8px;border-radius:5px}.en i{cursor:pointer;color:var(--r);font-style:normal}
+.row{display:flex;gap:6px;margin-top:8px;align-items:center;font-size:13px;flex-wrap:wrap}.row input{flex:1;min-width:70px;width:70px}
+.foot{margin-top:16px;color:var(--m);font-size:12px;line-height:1.6}
+.todo{background:#12161c;border:1px solid #2b3139;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:13px;line-height:1.7}.todo .g{color:var(--g)}.todo .rd{color:var(--r)}
+table{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0}td,th{padding:5px 3px;text-align:left;border-bottom:1px solid #2b3139}th{color:var(--m)}.sm{padding:2px 7px;font-size:11px}.dim td{color:var(--m)}
+.grid,.set{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}.set label{font-size:12px;display:flex;flex-direction:column;gap:3px}.set input{width:100%}
+.meter{height:8px;background:rgba(0,0,0,.35);border-radius:4px;overflow:hidden;margin-top:6px}.meter i{display:block;height:100%}.sumb{background:#12161c;border-radius:8px;padding:8px 10px;line-height:1.7}
+.gauge{position:relative;height:10px;border-radius:5px;background:linear-gradient(90deg,#f6465d,#555 50%,#0ecb81);margin-top:10px}.gauge u{position:absolute;top:-4px;width:4px;height:18px;background:#fff;border-radius:2px;transform:translateX(-50%);box-shadow:0 0 6px #fff;transition:left .4s}
+.gl{display:flex;justify-content:space-between;font-size:10px;margin-top:4px;opacity:.9}
+.gb{border-color:var(--g)!important;box-shadow:0 0 14px rgba(14,203,129,.45)}.gs{border-color:var(--r)!important;box-shadow:0 0 14px rgba(246,70,93,.45)}
+#alerts{position:sticky;top:0;z-index:5;background:#0b0e11ee;padding:8px 0;display:flex;gap:6px;flex-wrap:wrap;align-items:center;border-bottom:1px solid #2b3139;margin-bottom:8px}
+.chip{display:inline-block;padding:5px 11px;border-radius:20px;font-weight:bold;font-size:13px;cursor:pointer}.chip.b{background:var(--g);color:#000}.chip.s{background:var(--r);color:#fff}
+.sgc{margin:10px 0}.sgc .grid{grid-template-columns:repeat(auto-fit,minmax(230px,1fr));line-height:1.6;font-size:13px}.gA{background:var(--g);color:#000}.gB{background:var(--y);color:#000}
+</style></head><body>
+<h1>Coin Signal Tracker</h1><span id="st" class="wait">Connecting...</span> <span id="lu" class="foot"></span>
+<div id="alerts"><span class="sc">Loading signals...</span></div>
+<div id="warn"><b>Cannot reach Binance.</b><br>1) Check your internet. 2) Binance may be blocked by your network - try a VPN or mobile data. 3) Open this from your GitHub Pages link in Chrome (not inside a preview window). It will reconnect by itself.</div>
+<div class="top"><button type="button" onclick="togPlan()" style="background:var(--y)">📋 Top Coins Plan</button><button type="button" onclick="togScan()" style="background:var(--g)">🔍 Market Scanner</button><button type="button" onclick="togSmc()" style="background:#7c5cff;color:#fff">🧠 SMC Signals</button><input id="ni" placeholder="Type coin name, e.g. ZEC" onkeydown="if(event.key=='Enter')addCoin()"><button type="button" onclick="addCoin()">+ Add coin</button>
+<select id="iv" onchange="S.iv=this.value;save();reloadAll();nextAt=0" title="Signal timeframe"><option value="15m">Signal: 15 min</option><option value="1h">Signal: 1 hour</option><option value="4h">Signal: 4 hour</option><option value="1d">Signal: 1 day</option></select>
+<label class="foot"><input type="checkbox" id="snd" checked style="width:auto"> Sound</label></div>
+<div class="foot" style="margin:0 0 8px">Auto-update Scanner and Plan: <select id="ar" onchange="S.ar=+this.value;save();nextAt=Date.now()+S.ar*60000"><option value="1">every 1 min</option><option value="2">every 2 min</option><option value="5">every 5 min</option><option value="10">every 10 min</option></select> | Next update in <b id="cd">--</b> | <button class="sm" onclick="nextAt=0">Update now</button> <button class="sm" onclick="enNotif()">🔔 Notifications <span id="nt"></span></button> <button class="sm" onclick="cpAlert()">📤 Copy settings for Telegram alerts</button></div>
+<div class="chips" id="chips"></div>
+<div id="msg" class="wait" style="min-height:18px;font-size:13px;margin:4px 0"></div>
+<div id="scan" class="card" style="display:none;margin:10px 0"><b>Market Scanner</b> <span class="sc">(auto-updates)</span> <span id="scmsg" class="sc"></span> <button class="sm" onclick="runScan()">Rescan</button><div id="scout"><div class="sc" style="padding:8px">Loading first update...</div></div></div>
+<div id="plan" class="card" style="display:none;margin:10px 0"><b>Top Coins Plan - when to buy, when to sell, how much</b> <span class="sc">(auto-updates)</span> <span id="plmsg" class="sc"></span> <button class="sm" onclick="runPlan()">Rescan</button>
+<div class="set" id="plset" style="margin:10px 0;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))"></div><div id="plout"><div class="sc" style="padding:8px">Loading first update...</div></div></div>
+<div id="smc" class="card" style="display:none;margin:10px 0"><b>🧠 SMC Spot Signals</b> <span class="sc">(Smart Money Concepts - calculated on the backend, 1-5 per day)</span> <span id="smmsg" class="sc"></span> <button class="sm" onclick="loadSmc()">Refresh</button>
+<div class="set" id="smset" style="margin:10px 0;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))"></div><div id="smout"><div class="sc" style="padding:8px">Loading...</div></div></div>
+<div id="sum"></div>
+<div id="list"></div>
+<div class="foot">How signals work: RSI + EMA trend + MACD + Bollinger bands are scored from Binance candle data in your browser. BUY = score +3 or more, SELL = -3 or less. "Past accuracy" shows how often earlier signals on that coin were right (price moved more than 0.2% the right way within 12 candles). Nobody can guarantee profit - this is not financial advice. Your coins and buys are saved only in this browser.</div>
+<script>
+const $=s=>document.querySelector(s);
+let S=JSON.parse(localStorage.getItem('ct1')||'null')||{iv:'1h',coins:[{s:'ZEC',tp:10,sl:10,e:[{p:300,u:100},{p:250,u:200}]}]};
+S.coins.forEach(c=>{c.b=c.b||500;c.st=c.st||20;c.ld=c.ld||5;c.tp=c.tp||10;c.sl=c.sl||10});
+S.pl=S.pl||{bg:1000,rk:2,T:10,St:8,N:20};S.po=S.po||{sc:0,pl:0};S.ar=S.ar||5;S.sm=Object.assign({on:true,tf:'1h',top:30,budget:1000,risk:1,maxDay:5,minWin:70},S.sm||{});
+const D={},save=()=>localStorage.setItem('ct1',JSON.stringify(S)),ob=s=>D[s]=D[s]||{};
+const f=p=>p==null?'...':p.toLocaleString('en',{maximumFractionDigits:p>=100?2:p>=1?4:6});
+/* ---- data layer with fallbacks ---- */
+const H=['https://api.binance.com','https://data-api.binance.vision','https://api1.binance.com','https://api2.binance.com'];let hi=0;
+async function api(path){for(let n=0;n<H.length;n++){const k=(hi+n)%H.length;try{const r=await fetch(H[k]+path);if(r.ok){hi=k;return await r.json()}}catch(e){}}throw 0}
+const WH=['wss://stream.binance.com:9443','wss://data-stream.binance.vision'];let wi=0,ws,last=0,lastWs=0,via='',t0=Date.now();
+function connect(){if(ws){ws.onclose=null;ws.close()}if(!S.coins.length)return;
+try{ws=new WebSocket(WH[wi%2]+'/stream?streams='+S.coins.map(c=>c.s.toLowerCase()+'usdt@miniTicker').join('/'))}catch(e){return}
+ws.onmessage=m=>{const d=JSON.parse(m.data).data,o=ob(d.s.replace(/USDT$/,''));o.p=+d.c;o.chg=(d.c-d.o)/d.o*100;last=lastWs=Date.now();via='ws';upd()};
+ws.onclose=()=>{wi++;setTimeout(connect,3000)}}
+async function poll(){if(!S.coins.length||Date.now()-lastWs<6000)return;
+try{const a=await api('/api/v3/ticker/24hr?symbols='+encodeURIComponent(JSON.stringify(S.coins.map(c=>c.s+'USDT'))));
+a.forEach(x=>{const o=ob(x.symbol.replace(/USDT$/,''));o.p=+x.lastPrice;o.chg=+x.priceChangePercent});last=Date.now();via='poll';upd()}catch(e){}}
+function stat(){const a=(Date.now()-last)/1000,el=$('#st');let t='Connecting...',c='wait',w=0;
+if(!last){if(Date.now()-t0>10000){t='Not connected';c='bad';w=1}}
+else if(a<8){t=via=='ws'?'● LIVE (real-time)':'● LIVE (updates every 4 sec)';c='ok'}else{t='Connection lost - retrying';c='bad';w=1}
+el.textContent=t;el.className=c;$('#warn').style.display=w?'block':'none';$('#lu').textContent=last?'Last update '+new Date(last).toLocaleTimeString():''}
+/* ---- indicators ---- */
+function ema(a,n){const k=2/(n+1),o=[];let p=a[0];a.forEach((v,i)=>{p=i?v*k+p*(1-k):v;o.push(p)});return o}
+function rsi(c,n=14){const o=Array(c.length).fill(null);let g=0,l=0;for(let i=1;i<c.length;i++){const d=c[i]-c[i-1],G=Math.max(d,0),L=Math.max(-d,0);if(i<=n){g+=G;l+=L;if(i==n){g/=n;l/=n;o[i]=100-100/(1+g/(l||1e-9))}}else{g=(g*(n-1)+G)/n;l=(l*(n-1)+L)/n;o[i]=100-100/(1+g/(l||1e-9))}}return o}
+function bb(c,n=20){return c.map((_,i)=>{if(i<n-1)return null;const s=c.slice(i-n+1,i+1),m=s.reduce((a,b)=>a+b)/n,sd=Math.sqrt(s.reduce((a,b)=>a+(b-m)**2,0)/n);return{u:m+2*sd,l:m-2*sd}})}
+function build(k){const c=k.map(x=>+x[4]),a=ema(c,12),b=ema(c,26),m=c.map((_,i)=>a[i]-b[i]),g=ema(m,9);return{c,r:rsi(c),e1:ema(c,20),e2:ema(c,50),h:m.map((v,i)=>v-g[i]),b:bb(c)}}
+function score(I,i){let s=0;const w=[],r=I.r[i],h=I.h[i],hp=I.h[i-1],b=I.b[i],p=I.c[i];
+if(r<30){s+=2;w.push('RSI '+r.toFixed(0)+': very low price zone (+2)')}else if(r<40){s+=1;w.push('RSI '+r.toFixed(0)+': lowish (+1)')}else if(r>70){s-=2;w.push('RSI '+r.toFixed(0)+': very high price zone (-2)')}else if(r>60){s-=1;w.push('RSI '+r.toFixed(0)+': highish (-1)')}else w.push('RSI '+r.toFixed(0)+': normal (0)');
+if(I.e1[i]>I.e2[i]){s+=1;w.push('Short trend above long trend: going up (+1)')}else{s-=1;w.push('Short trend below long trend: going down (-1)')}
+if(h>0&&h>hp){s+=1;w.push('Momentum rising (+1)')}else if(h<0&&h<hp){s-=1;w.push('Momentum falling (-1)')}else w.push('Momentum mixed (0)');
+if(p<b.l){s+=1;w.push('Price below normal range (+1)')}else if(p>b.u){s-=1;w.push('Price above normal range (-1)')}
+return{s,w}}
+function backtest(I){const H=12,T=.002;let n=0,w=0,n4=0,w4=0,last=-99;for(let i=60;i<I.c.length-H;i++){const s=score(I,i).s,t=s>=3?1:s<=-3?-1:0;if(!t||i-last<H)continue;last=i;const ok=(I.c[i+H]/I.c[i]-1)*t>T;n++;if(ok)w++;if(Math.abs(s)>=4){n4++;if(ok)w4++}}return{n,w,n4,w4}}
+async function load(s){try{const I=build(await api(`/api/v3/klines?symbol=${s}USDT&interval=${S.iv}&limit=500`)),i=I.c.length-1,r=I.c.slice(-50);Object.assign(ob(s),{sig:score(I,i),an:{rsi:I.r[i],e1:I.e1[i],e2:I.e2[i],bl:I.b[i].l,bu:I.b[i].u,sup:Math.min(...r),res:Math.max(...r)},bt:backtest(I),err:0})}catch(e){ob(s).err=1}}
+const reloadAll=()=>Promise.all(S.coins.map(c=>load(c.s))).then(upd);
+/* ---- UI ---- */
+function beep(){if(!$('#snd').checked)return;try{const a=new(window.AudioContext||webkitAudioContext)(),o=a.createOscillator();o.connect(a.destination);o.frequency.value=880;o.start();setTimeout(()=>{o.stop();a.close()},300)}catch(e){}}
+const T=(el,q,t,c)=>{const n=el.querySelector(q);n.textContent=t;if(c!==undefined)n.className=n.className.split(' ')[0]+' '+c};
+const MSG={BUY:'Price looks low and recovering - good time to buy.',SELL:'Price looks high or falling - good time to sell.',WAIT:'No clear signal. Better to wait.'};
+function upd(){let tI=0,tV=0,tR=0;const AL=[];S.coins.forEach(c=>{const d=D[c.s]||{},el=$('#c-'+c.s);if(!el)return;const p=d.p;
+T(el,'.p','$'+f(p));T(el,'.chg',d.chg==null?'':(d.chg>0?'+':'')+d.chg.toFixed(2)+'% today',d.chg>=0?'up':'dn');
+const op=c.e.map((x,i)=>({...x,i})).filter(x=>!x.sold),inv=op.reduce((a,x)=>a+x.u,0),q=op.reduce((a,x)=>a+x.u/x.p,0),avg=q?inv/q:0,
+real=c.e.filter(x=>x.sold).reduce((a,x)=>a+x.u/x.p*(x.sold-x.p),0),room=Math.max(0,c.b-inv),step=c.b*c.st/100,s=d.sig?d.sig.s:0,st=Math.abs(s),
+amt=Math.min(room,step*(st>=5?1:st==4?.75:.5));
+let L='Loading signal...',m='',cl='hold',pct=0;const adv=[];
+if(d.err&&!d.sig){L='Signal not available';m='Could not load chart data. It will retry.'}
+if(d.sig){const tier=st>=5?'VERY STRONG':st==4?'STRONG':'MEDIUM';pct=st>=3?[0,0,0,60,80,100][st]:0;
+if(s>=3){cl='buy'+(st>=4?' blink':'');L=room>0?`▲ BUY NOW $${amt.toFixed(0)}`:'▲ BUY signal (budget full)';m=`${tier} signal - strength ${pct}%`}
+else if(s<=-3){cl='sell'+(st>=4?' blink':'');L=q?'▼ SELL SIGNAL':'▼ AVOID BUYING';m=`${tier} signal - strength ${pct}%`}
+else{L='WAIT';m='No clear signal. Better to wait.'}
+T(el,'.sc','Score '+(s>0?'+':'')+s+' of 5 (BUY at +3, SELL at -3)');
+el.querySelector('.why').innerHTML=d.sig.w.map(x=>'<li>'+x+'</li>').join('');
+const a=d.an;el.querySelector('.an').innerHTML=a?`<div class="grid"><span>RSI: <b>${a.rsi.toFixed(0)}</b> (under 30 cheap, over 70 expensive)</span><span>Trend: <b>${a.e1>a.e2?'Up':'Down'}</b></span><span>Support (50-candle low): <b>$${f(a.sup)}</b></span><span>Resistance (50-candle high): <b>$${f(a.res)}</b></span><span>Buy zone: below <b>$${f(a.bl)}</b></span><span>Sell zone: above <b>$${f(a.bu)}</b></span></div>`:'';
+const b=d.bt,n=st>=4?b.n4:b.n,w=st>=4?b.w4:b.w;T(el,'.bt',n?`Past accuracy of ${st>=4?'strong':'all'} signals on this coin (${S.iv} chart, last 500 candles): ${(100*w/n).toFixed(0)}% right out of ${n} signals`+(n<10?' - too few signals to trust':''):'Past accuracy: no signals of this strength in this history')}
+el.querySelector('.act').className='act '+cl;T(el,'.act b',L);T(el,'.act span',m);
+el.querySelector('.gauge u').style.left=((s+5)/10*100)+'%';el.className='card '+(s>=3?'gb':s<=-3?'gs':'');
+if(p){op.filter(x=>p>=x.p*(1+c.tp/100)).forEach(x=>adv.push(['g',`SELL entry #${x.i+1} (bought $${f(x.p)}) - target reached, profit +$${(x.u/x.p*p-x.u).toFixed(2)}`]));
+if(q&&p<=avg*(1-c.sl/100))adv.push(['rd',`STOP-LOSS: price is ${c.sl}% below your average - consider selling all to limit loss`]);
+if(s<=-3&&q&&p>avg)adv.push(['rd',`SELL signal and you are in profit - consider selling all (+$${(q*p-inv).toFixed(2)})`]);
+if(s>=3&&room>0)adv.push(['g',`BUY $${amt.toFixed(0)} now - small step (${c.st}% of your $${c.b} budget)`]);
+const lp=op.length?op[op.length-1].p:0;if(q&&room>0&&s>-3&&p<=lp*(1-c.ld/100))adv.push(['g',`Price fell ${c.ld}% below your last buy ($${f(lp)}) - you may add a small $${Math.min(room,step).toFixed(0)}`]);
+if(q&&room<=0)adv.push(['',`Budget full ($${c.b}) - do not buy more`])}
+if(!adv.length)adv.push(['','Nothing to do now - wait.']);
+if(s>=3&&room>0)AL.push(['b',`▲ BUY ${c.s} $${amt.toFixed(0)}`,c.s]);if(s<=-3)AL.push(['s',`▼ SELL ${c.s}`,c.s]);
+const ns=p?op.filter(x=>p>=x.p*(1+c.tp/100)).length:0;if(ns)AL.push(['s',`▼ SELL ${c.s} (${ns} target hit)`,c.s]);if(q&&p&&p<=avg*(1-c.sl/100))AL.push(['s',`▼ ${c.s} STOP-LOSS`,c.s]);
+el.querySelector('.todo').innerHTML='<b>What to do now</b><br>'+adv.map(x=>`<span class="${x[0]}">• ${x[1]}</span>`).join('<br>');
+const pe=el.querySelector('.pos');tR+=real;
+if(!c.e.length)pe.innerHTML='<small>No buys yet. Add each buy below - every buy gets its own sell target and live profit.</small>';
+else{const rows=c.e.map((x,i)=>{const qq=x.u/x.p,del=`<i onclick="de('${c.s}',${i})">✕</i>`;
+if(x.sold){const rp=qq*(x.sold-x.p);return`<tr class="dim"><td>#${i+1}</td><td>$${f(x.p)}</td><td>$${x.u}</td><td colspan="2" class="${rp>=0?'up':'dn'}">SOLD @ $${f(x.sold)}: ${rp>=0?'+':''}${rp.toFixed(2)}$</td><td>${del}</td></tr>`}
+const tg=x.p*(1+c.tp/100),pl=p?qq*p-x.u:0,hit=p&&p>=tg;return`<tr><td>#${i+1}</td><td>$${f(x.p)}</td><td>$${x.u}</td><td class="${pl>=0?'up':'dn'}">${pl>=0?'+':''}${pl.toFixed(2)}$ (${(pl/x.u*100).toFixed(1)}%)</td><td>$${f(tg)}</td><td>${hit?'<span class="pill buy blink">SELL</span>':'Hold'} <button class="sm" onclick="sd('${c.s}',${i})">Sold</button> ${del}</td></tr>`}).join('');
+let sum='';if(q){const tg=avg*(1+c.tp/100),sl=avg*(1-c.sl/100),pl=p?p*q-inv:0;if(p){tI+=inv;tV+=p*q}
+sum=`<div class="sumb"><b>FINAL (open buys)</b><br>Average buy: <b>$${f(avg)}</b> | Coins: ${q.toFixed(4)} | Invested: $${inv.toFixed(2)}<br><span class="${pl>=0?'up':'dn'}">Profit/Loss now: <b>${pl>=0?'+':''}${pl.toFixed(2)}$ (${p?(pl/inv*100).toFixed(2):'0.00'}%)</b></span><br>Average sell target: <b>$${f(tg)}</b> (profit if sold there: +$${(q*tg-inv).toFixed(2)}) | Stop-loss: <b>$${f(sl)}</b>${real?`<br>Already sold (realized): <b class="${real>=0?'up':'dn'}">${real>=0?'+':''}${real.toFixed(2)}$</b>`:''}</div>`}
+pe.innerHTML=`<div style="overflow-x:auto"><table><tr><th>#</th><th>Bought at</th><th>Amount</th><th>Profit now</th><th>Sell at</th><th>Action</th></tr>${rows}</table></div>`+sum}
+const k=L+'|'+adv.filter(x=>x[0]).map(x=>x[1].slice(0,14)).join();if(d.k&&d.k!==k&&/BUY NOW|SELL|STOP/.test(k)){beep();notify(c.s+': '+L,adv.map(x=>x[1]).join(' | ').slice(0,200))}d.k=k});
+$('#alerts').innerHTML=AL.length?AL.map(a=>`<span class="chip ${a[0]}" onclick="document.getElementById('c-${a[2]}').scrollIntoView({behavior:'smooth'})">${a[1]}</span>`).join(''):'<span class="sc">No active signals. Waiting...</span>';
+document.title=(AL.length?'('+AL.length+') ':'')+'Coin Signal Tracker';
+const tp=tV-tI;$('#sum').innerHTML=tI||tR?`<b>All coins:</b> invested (open) $${tI.toFixed(2)} | now $${tV.toFixed(2)} | <b class="${tp>=0?'up':'dn'}">${tp>=0?'+':''}${tp.toFixed(2)}$</b>${tR?` | realized <b class="${tR>=0?'up':'dn'}">${tR>=0?'+':''}${tR.toFixed(2)}$</b>`:''}`:'Add your buys to see total profit/loss here.'}
+function draw(){$('#list').innerHTML=S.coins.map(c=>`<div class="card" id="c-${c.s}">
+<div class="h"><b>${c.s} / USDT</b><a href="https://www.binance.com/en/trade/${c.s}_USDT?type=spot" target="_blank" rel="noopener">Trade on Binance ↗</a><button class="x" onclick="rm('${c.s}')" title="Remove">✕</button></div>
+<div><span class="p">...</span><span class="chg"></span></div>
+<div class="act hold"><b>...</b><span></span><div class="gauge"><u></u></div><div class="gl"><span>▼ SELL</span><span>WAIT</span><span>BUY ▲</span></div></div>
+<div class="todo"></div>
+<details open><summary>My buys - every entry live</summary><div class="pos"></div>
+<div class="row">I bought at <input class="ep" type="number" step="any" placeholder="price"> for $<input class="eu" type="number" step="any" placeholder="USDT"><button onclick="ae('${c.s}')">+ Add</button></div></details>
+<details><summary>Settings (changes apply live)</summary><div class="set">${[['b','Budget for this coin ($)'],['st','Buy step (% of budget)'],['ld','Add more if price falls (%)'],['tp','Sell profit target (%)'],['sl','Stop-loss (%)']].map(([k,t])=>`<label>${t}<input type="number" value="${c[k]}" oninput="sv('${c.s}','${k}',this.value)"></label>`).join('')}</div></details>
+<details><summary>Full analysis and past accuracy</summary><div class="an"></div><div class="sc"></div><ul class="why"></ul><div class="bt"></div></details></div>`).join('');
+$('#chips').innerHTML=['BTC','ETH','BNB','SOL','XRP','ZEC','DOGE'].filter(x=>!gc(x)).map(x=>`<button onclick="addCoin('${x}')">+ ${x}</button>`).join('');upd()}
+const gc=s=>S.coins.find(c=>c.s==s);
+function ae(s){const el=$('#c-'+s),p=+el.querySelector('.ep').value,u=+el.querySelector('.eu').value;if(p>0&&u>0){gc(s).e.push({p,u});save();draw()}else alert('Please type buy price and USDT amount.')}
+function sd(s,i){const n=+prompt('Sold at what price? (USDT)');if(n>0){gc(s).e[i].sold=n;save();draw()}}
+function de(s,i){gc(s).e.splice(i,1);save();draw()}
+function sv(s,k,v){gc(s)[k]=+v||0;save();upd()}
+function rm(s){S.coins=S.coins.filter(c=>c.s!=s);save();draw();connect()}
+const say=t=>{$('#msg').textContent=t;setTimeout(()=>{if($('#msg').textContent==t)$('#msg').textContent=''},5000)};
+async function valid(s){for(const h of H){try{const r=await fetch(h+'/api/v3/ticker/price?symbol='+s+'USDT');if(r.ok)return true;if(r.status==400)return false}catch(e){}}return null}
+async function addCoin(x){const i=$('#ni'),s=(typeof x=='string'?x:i.value).toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/USDT$/,'');
+if(!s){say('Type a coin name first, e.g. ZEC');return}
+if(gc(s)){say(s+' is already in your list');return}
+S.coins.push({s,tp:10,sl:10,b:500,st:20,ld:5,e:[]});i.value='';save();draw();connect();poll();load(s).then(upd);say(s+' added. Checking on Binance...');
+const v=await valid(s);if(v===false){S.coins=S.coins.filter(c=>c.s!=s);save();draw();connect();say(s+'USDT was not found on Binance. Please check the coin name.')}else if(v)say(s+' added ✓')}
+
+/* ---- notifications ---- */
+function notify(t,b){if(window.Notification&&Notification.permission=='granted'){try{new Notification(t,{body:b})}catch(e){}}}
+function enNotif(){if(!window.Notification){alert('This browser does not support notifications. Use the Telegram alerts instead.');return}Notification.requestPermission().then(p=>{$('#nt').textContent=p=='granted'?'(on)':'(off)';if(p=='granted')notify('Notifications on','You will get BUY / SELL alerts while this page is open.')})}
+function cpAlert(){const o={iv:S.iv,scan:{on:true,top:20,minScore:4},smc:S.sm,coins:S.coins.map(c=>({s:c.s,tp:c.tp,sl:c.sl,entries:c.e.filter(x=>!x.sold).map(x=>({p:x.p,u:x.u}))}))},t=JSON.stringify(o,null,2);navigator.clipboard.writeText(t).then(()=>say('Copied! Paste it into coins.json on GitHub (includes SMC settings).'),()=>prompt('Copy this into coins.json:',t))}
+/* ---- shared cache + auto-update scheduler ---- */
+const KC={};let TC=null,nextAt=0,arBusy=false;
+async function kl(sym){const k=sym+S.iv,c=KC[k];if(c&&Date.now()-c.t<120000)return c.d;const d=await api(`/api/v3/klines?symbol=${sym}&interval=${S.iv}&limit=500`);KC[k]={t:Date.now(),d};return d}
+async function t24(){if(TC&&Date.now()-TC.t<60000)return TC.d;const d=await api('/api/v3/ticker/24hr');TC={t:Date.now(),d};return d}
+async function tick(){const cd=$('#cd');if(document.hidden){cd.textContent='paused (tab hidden)';return}
+if(arBusy){cd.textContent='updating...';return}
+const left=Math.ceil((nextAt-Date.now())/1000);if(left>0){cd.textContent=Math.floor(left/60)+':'+String(left%60).padStart(2,'0');return}
+arBusy=true;cd.textContent='updating...';try{await runScan();await runPlan()}catch(e){}
+const bad=/Could not/.test($('#scmsg').textContent+$('#plmsg').textContent);arBusy=false;nextAt=Date.now()+(bad?30000:S.ar*60000)}
+function showPanels(){$('#scan').style.display=S.po.sc?'block':'none';$('#plan').style.display=S.po.pl?'block':'none';$('#smc').style.display=S.po.sm?'block':'none'}
+/* ---- Market scanner ---- */
+const STB=/^(USDC|FDUSD|TUSD|USDP|BUSD|DAI|EUR|AEUR|USDE|XUSD|USD1)$/;let scanOn=false,scanBusy=false,scanTimer;
+function togScan(){S.po.sc=!S.po.sc;save();showPanels()}
+async function runScan(){if(scanBusy)return;scanBusy=true;const msg=$('#scmsg');
+try{msg.textContent='Loading market list...';
+const all=await t24(),list=all.filter(x=>x.symbol.endsWith('USDT')&&!STB.test(x.symbol.slice(0,-4))&&+x.quoteVolume>5e6).sort((a,b)=>b.quoteVolume-a.quoteVolume).slice(0,40),res=[];let done=0;
+const job=async x=>{const n=x.symbol.slice(0,-4);try{const I=build(await kl(x.symbol)),i=I.c.length-1,p=I.c[i];res.push({s:n,p,chg:+x.priceChangePercent,sc:score(I,i).s,up:(Math.max(...I.c.slice(-200))/p-1)*100,bl:I.b[i].l,bt:backtest(I),tr:I.e1[i]>I.e2[i]})}catch(e){}msg.textContent=`Scanning ${++done}/${list.length}...`};
+for(let i=0;i<list.length;i+=8)await Promise.all(list.slice(i,i+8).map(job));
+const btc=res.find(r=>r.s=='BTC'),weak=btc&&(btc.sc<=-2||(!btc.tr&&btc.chg<-2)),good=btc&&btc.tr&&btc.sc>=0;
+const pick=res.filter(r=>r.sc>=2).sort((a,b)=>b.sc-a.sc||b.up-a.up).slice(0,10),bad=res.filter(r=>r.sc<=-3).sort((a,b)=>a.sc-b.sc).slice(0,8);
+const row=r=>{const buy=r.sc>=3,base=buy?r.p:r.bl,b=r.bt,acc=b.n?`${(100*b.w/b.n).toFixed(0)}% of ${b.n}`:'-';
+return`<tr><td><b>${r.s}</b></td><td>$${f(r.p)}</td><td class="${r.chg>=0?'up':'dn'}">${r.chg.toFixed(1)}%</td><td><span class="pill ${buy?'buy':'hold'}">${buy?'▲ BUY':'● WATCH'}</span> ${Math.min(r.sc,5)*20}%</td><td>${buy?'Now ~$'+f(r.p):'Wait dip to $'+f(r.bl)}</td><td>$${f(base*1.1)} / $${f(base*1.2)}</td><td>$${f(base*.92)}</td><td class="${r.up>=10?'up':''}">+${r.up.toFixed(0)}%</td><td>${acc}</td><td><button class="sm" onclick="addCoin('${r.s}')">+ Add</button> <a href="https://www.binance.com/en/trade/${r.s}_USDT?type=spot" target="_blank" rel="noopener" style="color:var(--y)">Binance ↗</a></td></tr>`};
+$('#scout').innerHTML=`<div class="todo"><b>Market condition:</b> <span class="${weak?'rd':good?'g':''}">${weak?'WEAK - Bitcoin is falling. Buy only very small amounts or wait.':good?'HEALTHY - Bitcoin trend is up. Good for buying on dips.':'MIXED - Bitcoin is sideways. Be selective.'}</span>${btc?` (BTC ${btc.chg.toFixed(1)}% today)`:''}</div>`+
+(pick.length?`<div style="overflow-x:auto"><table><tr><th>Coin</th><th>Price</th><th>24h</th><th>Signal / strength</th><th>Buy at</th><th>Sell at +10% / +20%</th><th>Stop-loss (-8%)</th><th>Room up</th><th>Past accuracy</th><th></th></tr>${pick.map(row).join('')}</table></div>`:'<div class="sc" style="padding:8px">No good setup right now. Waiting is also a position - scanner rechecks every 5 minutes.</div>')+
+(bad.length?`<div class="todo"><b class="rd">▼ SELL / avoid now (weak coins):</b> ${bad.map(r=>`<span class="chip s">${r.s}</span>`).join(" ")}</div>`:"")+`<div class="foot">Scanned the top ${res.length} USDT coins by volume on the ${S.iv} chart at ${new Date().toLocaleTimeString()}. The +10% / +20% levels are a plan, not a prediction. "Room up" = distance to the highest price of the last 200 candles (green = 10% or more). Sell early if the coin's SELL signal appears. Stop-loss -8% is a default assumption.</div>`;
+msg.textContent=''}catch(e){msg.textContent='Could not load market data. Check connection and press Rescan.'}scanBusy=false}
+
+/* ---- Top Coins Plan ---- */
+const PL={res:[],busy:0};let plOn=false,plTimer;
+function plSet(){const P=S.pl;$('#plset').innerHTML=[['bg','Total budget ($)'],['rk','Risk per trade (% of budget)'],['T','Profit target (%)'],['St','Stop-loss (%)']].map(([k,t])=>`<label>${t}<input type="number" value="${P[k]}" oninput="spv('${k}',this.value)"></label>`).join('')+`<label>Coins to scan<select onchange="spv('N',this.value);runPlan()">${[20,30,50].map(n=>`<option ${P.N==n?'selected':''}>${n}</option>`).join('')}</select></label>`}
+function spv(k,v){S.pl[k]=+v||0;save();renderPlan()}
+function togPlan(){S.po.pl=!S.po.pl;save();showPanels()}
+function sim(I,T,St,F){const H=72,n=I.c.length,o=[];let last=-99;for(let i=60;i<n-1;i++){if(I.sg[i]<3||i-last<12)continue;last=i;let r=null,k=0;for(let j=i+1;j<=Math.min(i+H,n-1);j++){const g=I.c[j]/I.c[i]-1;if(g>=T){r=T;k=j-i;break}if(g<=-St){r=-St;k=j-i;break}}if(r==null){if(n-1-i<H)continue;r=I.c[i+H]/I.c[i]-1;k=H}o.push({r:r-F,k})}return o}
+async function runPlan(){if(PL.busy)return;PL.busy=1;const msg=$('#plmsg');
+try{msg.textContent='Loading market list...';const all=await t24(),list=all.filter(x=>x.symbol.endsWith('USDT')&&!STB.test(x.symbol.slice(0,-4))&&+x.quoteVolume>5e6).sort((a,b)=>b.quoteVolume-a.quoteVolume).slice(0,S.pl.N),res=[];let done=0;
+const job=async x=>{try{const I=build(await kl(x.symbol)),i=I.c.length-1;I.sg=I.c.map((_,k)=>k>=60?score(I,k).s:0);res.push({s:x.symbol.slice(0,-4),p:I.c[i],chg:+x.priceChangePercent,sc:I.sg[i],bl:I.b[i].l,tr:I.e1[i]>I.e2[i],I})}catch(e){}msg.textContent=`Scanning ${++done}/${list.length}...`};
+for(let i=0;i<list.length;i+=8)await Promise.all(list.slice(i,i+8).map(job));
+PL.res=res;PL.t=Date.now();msg.textContent='';renderPlan()}catch(e){msg.textContent='Could not load market data. Check connection and press Rescan.'}PL.busy=0}
+function renderPlan(){const P=S.pl,res=PL.res;if(!res.length)return;const mins={'15m':15,'1h':60,'4h':240,'1d':1440}[S.iv],F=.002,T=P.T/100,St=P.St/100,
+btc=res.find(r=>r.s=='BTC'),weak=btc&&(btc.sc<=-2||(!btc.tr&&btc.chg<-2)),good=btc&&btc.tr&&btc.sc>=0,mf=weak?.5:good?1:.75;
+res.forEach(r=>{const t=sim(r.I,T,St,F),ks=t.map(x=>x.k).sort((a,b)=>a-b);r.n=t.length;r.w=t.filter(x=>x.r>0).length;r.av=r.n?t.reduce((a,x)=>a+x.r,0)/r.n:0;r.mk=ks.length?ks[ks.length>>1]:0;
+r.act=r.sc>=3?'BUY':r.sc>=2?'WATCH':r.sc<=-3?'SELL':'WAIT';r.skip=r.act=='BUY'&&r.n>=5&&r.av<=0;
+r.raw=r.act=='BUY'&&!r.skip&&St>0?P.bg*P.rk/100/St*(r.sc/5)*mf*(r.n<5?.5:1):0});
+const tot=res.reduce((a,r)=>a+r.raw,0),k=tot>P.bg*.6?P.bg*.6/tot:1;res.forEach(r=>r.use=r.raw*k);
+const ord={BUY:0,WATCH:1,WAIT:2,SELL:3},L=[...res].sort((a,b)=>ord[a.act]-ord[b.act]||b.use-a.use||b.sc-a.sc);
+const when=r=>{if(r.act=='SELL')return'Sell / avoid now';if(r.act=='WAIT')return'No entry now';const d=new Date(Date.now()+r.mk*mins*6e4).toLocaleString([],{weekday:'short',hour:'2-digit',minute:'2-digit'});
+return(r.act=='BUY'?'Buy now':'Wait dip to $'+f(r.bl))+(r.n>=3?`, usual exit ~${Math.max(1,Math.round(r.mk*mins/60))}h (by ${d})`:' (too few past trades for timing)')};
+const rw=(r,i)=>{const base=r.act=='BUY'?r.p:r.bl,cl=r.act=='BUY'?'buy':r.act=='SELL'?'sell':'hold',tag={BUY:'▲ BUY',SELL:'▼ SELL',WATCH:'● WATCH',WAIT:'WAIT'}[r.act];
+return`<tr><td>${i+1}</td><td><b>${r.s}</b></td><td>$${f(r.p)}</td><td class="${r.chg>=0?'up':'dn'}">${r.chg.toFixed(1)}%</td><td><span class="pill ${cl}">${tag}</span> ${Math.abs(r.sc)>=2?Math.abs(r.sc)*20+'%':''}</td><td>${when(r)}</td><td>${r.act=='BUY'||r.act=='WATCH'?`$${f(base*(1+T))} / stop $${f(base*(1-St))}`:'-'}</td><td>${r.use>0?'<b>$'+r.use.toFixed(0)+'</b>':r.skip?'<span class="dn">Skip (past results negative)</span>':'-'}</td><td>${r.use>0?`<span class="up">+$${(r.use*T).toFixed(0)}</span> / <span class="dn">-$${(r.use*St).toFixed(0)}</span>`:'-'}</td><td>${r.n?`${(100*r.w/r.n).toFixed(0)}% win, avg ${(r.av*100).toFixed(1)}%, ${r.n} trades`:'no past signals'}</td><td><button class="sm" onclick="addCoin('${r.s}')">+ Add</button> <a href="https://www.binance.com/en/trade/${r.s}_USDT?type=spot" target="_blank" rel="noopener" style="color:var(--y)">↗</a></td></tr>`};
+const dep=L.reduce((a,r)=>a+r.use,0),ex=L.reduce((a,r)=>a+r.use*r.av,0),nm=a=>L.filter(r=>r.act==a).map(r=>r.s).join(', ')||'none';
+$('#plout').innerHTML=`<div class="todo"><b>Market condition:</b> <span class="${weak?'rd':good?'g':''}">${weak?'WEAK - Bitcoin falling. Position sizes cut by 50%.':good?'HEALTHY - Bitcoin trend up. Full position sizes.':'MIXED - Bitcoin sideways. Position sizes cut by 25%.'}</span>${btc?` (BTC ${btc.chg.toFixed(1)}% today)`:''}</div>
+<div class="sumb"><b>Today's plan for $${P.bg}</b><br>Use now: <b>$${dep.toFixed(0)}</b> (${(dep/P.bg*100||0).toFixed(0)}%), keep cash: <b>$${(P.bg-dep).toFixed(0)}</b><br><span class="up">If all hit +${P.T}% target: +$${(dep*T).toFixed(0)}</span> | <span class="dn">If all hit -${P.St}% stop: -$${(dep*St).toFixed(0)}</span><br>Estimate from past results: <b class="${ex>=0?'up':'dn'}">${ex>=0?'+':''}$${ex.toFixed(0)}</b> (history average, not a promise)</div>
+<div class="grid" style="margin:8px 0;font-size:13px"><span class="up">▲ BUY NOW: ${nm('BUY')}</span><span style="color:var(--y)">● WAIT FOR DIP: ${nm('WATCH')}</span><span class="dn">▼ SELL / AVOID: ${nm('SELL')}</span><span class="dim">No entry: ${nm('WAIT')}</span></div>
+<div style="overflow-x:auto"><table><tr><th>#</th><th>Coin</th><th>Price</th><th>24h</th><th>Signal</th><th>Timeline</th><th>Sell target / stop</th><th>Use ($)</th><th>Profit / loss</th><th>Past results</th><th></th></tr>${L.map(rw).join('')}</table></div>
+<div class="foot">Updated ${new Date(PL.t).toLocaleTimeString()} on the ${S.iv} chart. How it is calculated: Use ($) = (budget x risk%) / stop% x signal strength x market factor, never more than 60% of budget in total, halved when fewer than 5 past trades, zero when past results are negative. Past results = every earlier BUY signal on this coin replayed on the last 500 candles: exit at target, stop, or after 72 candles, minus 0.2% fees (assumption: 0.1% per side), closing prices only. Timeline = median length of those past trades. More trades = more reliable (4h chart gives a longer history). This is analysis, not a guarantee.</div>`;const nb=res.filter(r=>r.act=='BUY').map(r=>r.s);if(PL.pb){const n=nb.filter(x=>!PL.pb.includes(x));if(n.length){beep();notify('New BUY signals',n.join(', '))}}PL.pb=nb}
+
+/* ---- SMC engine (same code as smc-engine.mjs on the backend) ---- */
+const SMC=(()=>{
+// Smart Money Concepts (SMC) engine - SPOT, LONG ONLY. Pure functions, no network.
+// Used by smc.mjs (live signals + backtest). Same code for both, so the backtest is honest.
+
+const TF_MS = { '5m': 3e5, '15m': 9e5, '30m': 18e5, '1h': 36e5, '2h': 72e5, '4h': 144e5, '1d': 864e5 };
+
+const DEF = {
+  L: 3,            // swing pivot strength (candles each side)
+  win: 160,        // candles looked back for structure
+  bosAge: 36,      // break of structure must be this recent (candles)
+  legAge: 80,      // impulse leg origin must be this recent
+  disp: 0.9,       // displacement candle body >= disp * ATR
+  approach: 2.5,   // price must be within this many ATR above the zone (or inside it)
+  minRR: 1.3,      // minimum reward:risk to TP1
+  maxTP1R: 2.5,    // TP1 capped at this R multiple
+  maxRisk: 0.08,   // skip if stop is further than 8%
+  minRisk: 0.004,  // skip if stop is tighter than 0.4% (fees eat it)
+  slBuf: 0.3,      // stop buffer below zone, in ATR
+  maxRSI: 68,      // do not buy overbought
+  minScore: 6,     // confluence score needed (0-10)
+  fillBars: 12,    // limit order lives this many candles
+  maxHold: 72,     // max candles to stay in a trade after entry
+  fee: 0.002,      // 0.1% per side round trip
+  w1: 0.7,         // share sold at TP1
+  cool: 12         // candles between two signals on the same coin
+};
+
+const parse = a => a.map(x => ({ t: +x[0], o: +x[1], h: +x[2], l: +x[3], c: +x[4], v: +x[5], ct: +x[6] }));
+
+function ema(a, n) { const k = 2 / (n + 1), o = []; let p = a[0]; for (let i = 0; i < a.length; i++) { p = i ? a[i] * k + p * (1 - k) : a[i]; o.push(p); } return o; }
+
+function rsiArr(c, n = 14) {
+  const o = Array(c.length).fill(null); let g = 0, l = 0;
+  for (let i = 1; i < c.length; i++) {
+    const d = c[i] - c[i - 1], G = Math.max(d, 0), L = Math.max(-d, 0);
+    if (i <= n) { g += G; l += L; if (i === n) { g /= n; l /= n; o[i] = 100 - 100 / (1 + g / (l || 1e-9)); } }
+    else { g = (g * (n - 1) + G) / n; l = (l * (n - 1) + L) / n; o[i] = 100 - 100 / (1 + g / (l || 1e-9)); }
+  }
+  return o;
+}
+
+function atrArr(c, n = 14) {
+  const o = []; let p = 0;
+  for (let i = 0; i < c.length; i++) {
+    const tr = i ? Math.max(c[i].h - c[i].l, Math.abs(c[i].h - c[i - 1].c), Math.abs(c[i].l - c[i - 1].c)) : c[i].h - c[i].l;
+    p = i < n ? (p * i + tr) / (i + 1) : (p * (n - 1) + tr) / n; o.push(p);
+  }
+  return o;
+}
+
+function prepare(c) {
+  const cl = c.map(x => x.c);
+  const vavg = c.map((_, i) => { if (i < 20) return 0; let s = 0; for (let j = i - 20; j < i; j++) s += c[j].v; return s / 20; });
+  return { c, cl, ema50: ema(cl, 50), ema200: ema(cl, 200), atr: atrArr(c), rsi: rsiArr(cl), vavg };
+}
+
+/* Look for a bullish SMC setup using ONLY candles up to index i (no look-ahead). */
+function detectAt(X, i, o) {
+  const { c, atr, ema50, ema200, rsi } = X;
+  if (i < 210) return null;
+  const r = rsi[i]; if (r == null || r > o.maxRSI) return null;
+  const s = Math.max(0, i - o.win), L = o.L, H = [], Lw = [];
+  for (let j = s + L; j <= i - L; j++) {
+    let ph = true, pl = true;
+    for (let k = 1; k <= L; k++) {
+      if (c[j].h <= c[j - k].h || c[j].h < c[j + k].h) ph = false;
+      if (c[j].l >= c[j - k].l || c[j].l > c[j + k].l) pl = false;
+    }
+    if (ph) H.push({ i: j, p: c[j].h }); if (pl) Lw.push({ i: j, p: c[j].l });
+  }
+  if (!H.length || !Lw.length) return null;
+
+  // 1) recent bullish break of structure (close above a swing high)
+  let brk = null;
+  for (let a = H.length - 1; a >= 0; a--) {
+    const sh = H[a]; let b = -1;
+    for (let j = sh.i + 1; j <= i; j++) if (c[j].c > sh.p) { b = j; break; }
+    if (b > 0 && i - b <= o.bosAge) { brk = { sh, b, a }; break; }
+  }
+  if (!brk) return null;
+  const { sh, b, a } = brk;
+  const choch = a > 0 && H[a - 1].p > sh.p; // broke a LOWER high = change of character
+
+  // 2) impulse leg: origin swing low -> range high
+  let LL = null; for (let k = Lw.length - 1; k >= 0; k--) if (Lw[k].i < b) { LL = Lw[k]; break; }
+  if (!LL || i - LL.i > o.legAge) return null;
+  let RH = sh.p; for (let j = b; j <= i; j++) if (c[j].h > RH) RH = c[j].h;
+  const RL = LL.p, rg = RH - RL; if (rg <= 0) return null;
+
+  // 3) displacement candle (strong bullish body)
+  let d = -1, mb = 0; for (let j = LL.i + 1; j <= b; j++) { const bd = c[j].c - c[j].o; if (bd > mb) { mb = bd; d = j; } }
+  if (d < 0 || mb < o.disp * atr[d]) return null;
+
+  // 4) bullish order block = last bearish candle before the displacement
+  let ob = null;
+  for (let j = d - 1; j >= Math.max(s, LL.i - 2); j--) if (c[j].c < c[j].o) { ob = { i: j, lo: c[j].l, hi: c[j].o }; break; }
+  if (!ob || ob.hi <= ob.lo) return null;
+  // must be fresh: never closed below, never touched before the current candle
+  for (let j = d + 1; j <= i; j++) { if (c[j].c < ob.lo) return null; if (j < i && c[j].l <= ob.hi) return null; }
+
+  // 5) price must be approaching / inside the zone
+  const px = c[i].c; if (px - ob.hi > o.approach * atr[i]) return null;
+
+  // 6) discount only (below 50% of the dealing range)
+  const mid = (ob.lo + ob.hi) / 2; if (mid > RL + 0.5 * rg) return null;
+  const ote = ob.hi >= RH - 0.79 * rg && ob.lo <= RH - 0.618 * rg;
+
+  // 7) unfilled bullish fair value gap overlapping the order block
+  let fvg = false;
+  for (let k = LL.i + 1; k <= i - 1 && !fvg; k++) {
+    const lo = c[k - 1].h, hi = c[k + 1].l; if (hi <= lo) continue;
+    let filled = false; for (let m = k + 2; m <= i; m++) if (c[m].l <= lo) { filled = true; break; }
+    if (!filled && lo <= ob.hi && hi >= ob.lo) fvg = true;
+  }
+
+  // 8) sell-side liquidity sweep: leg low took out an earlier swing low and closed back above it
+  let sweep = false, P = null; for (let k = Lw.length - 1; k >= 0; k--) if (Lw[k].i < LL.i) { P = Lw[k]; break; }
+  if (P && LL.i - P.i <= 60 && P.p > LL.p) for (let j = LL.i; j <= Math.min(i, LL.i + 3); j++) if (c[j].c > P.p) { sweep = true; break; }
+
+  const vol = X.vavg[d] > 0 && c[d].v >= 1.3 * X.vavg[d];
+  const bias = px > ema50[i] && ema50[i] > ema200[i] ? 2 : px > ema200[i] ? 1 : 0;
+  if (bias === 0 && !(choch && sweep)) return null;
+
+  // score + human reasons
+  let sc = 2; const why = [];
+  why.push(bias === 2 ? 'Trend is up (price > EMA50 > EMA200)' : bias === 1 ? 'Price above EMA200 (trend not broken)' : 'Trend was down, but reversal confirmed (CHoCH + sweep)');
+  sc += bias;
+  if (choch) { sc += 1; why.push('CHoCH: broke a lower high, trend may be turning up'); } else { sc += 2; why.push('BOS: price broke above a swing high (uptrend continues)'); }
+  why.push('Bullish order block (last sell candle before the strong up move) - fresh, untouched');
+  if (fvg) { sc += 1; why.push('Fair value gap overlaps the order block (extra support)'); }
+  if (sweep) { sc += 2; why.push('Liquidity sweep: stops below old lows were taken, then price recovered'); }
+  if (ote) { sc += 1; why.push('Zone is in the 61.8%-79% retracement (optimal entry area)'); } else why.push('Zone is in the discount half of the range (cheap side)');
+  if (vol) { sc += 1; why.push('Strong volume on the up move (real buying)'); }
+  sc = Math.min(10, sc);
+
+  // levels
+  const e0 = ob.lo + 0.7 * (ob.hi - ob.lo), entry = Math.min(e0, px), now = px <= e0;
+  const slBase = (ob.lo - LL.p <= atr[i] ? Math.min(ob.lo, LL.p) : ob.lo), sl = slBase - o.slBuf * atr[i];
+  const risk = entry - sl, riskPct = risk / entry;
+  if (!(risk > 0) || riskPct > o.maxRisk || riskPct < o.minRisk) return null;
+  if ((RH - entry) / risk < o.minRR) return null;
+  const tp1 = Math.min(RH, entry + o.maxTP1R * risk);
+  const tp2 = Math.min(entry + 5 * risk, Math.max(RL + 1.272 * rg, tp1 + risk));
+  return { i, t: c[i].t, price: px, zone: { lo: ob.lo, hi: ob.hi }, entry, now, sl, tp1, tp2, riskPct, rr1: (tp1 - entry) / risk, score: sc, why, flags: { choch, sweep, fvg, ote, vol } };
+}
+
+/* Replay one trade on candles starting at index `start`. Deterministic; used by backtest AND live tracking.
+   Rules (conservative): if SL and TP are both inside one candle, SL is assumed first. */
+function replay(s, c, start, o) {
+  const fee = o.fee, w1 = o.w1, g = p => (p - s.entry) / s.entry, ev = [];
+  let st = 'pending', fi = -1, tp1 = false, cs = s.sl;
+  const end = (status, j, px) => {
+    let pnl;
+    if (status === 'expired' || status === 'missed') pnl = 0;
+    else if (status === 'sl') pnl = g(s.sl) - fee;
+    else if (status === 'be') pnl = w1 * g(s.tp1) - fee;
+    else if (status === 'tp2') pnl = w1 * g(s.tp1) + (1 - w1) * g(s.tp2) - fee;
+    else pnl = (tp1 ? w1 * g(s.tp1) + (1 - w1) * g(px) : g(px)) - fee;
+    return { status, events: ev, fi, tp1Hit: tp1, final: true, endIdx: j, pnl };
+  };
+  for (let j = start; j < c.length; j++) {
+    const k = c[j];
+    if (st === 'pending') {
+      if (j - start >= o.fillBars) { ev.push({ k: 'expired', j, p: k.o }); return end('expired', j); }
+      if (k.l <= s.entry) { st = 'active'; fi = j; ev.push({ k: 'filled', j, p: s.entry }); }
+      else { if (k.h >= s.tp1) { ev.push({ k: 'missed', j, p: s.tp1 }); return end('missed', j); } continue; }
+    }
+    if (k.l <= cs) { if (tp1) { ev.push({ k: 'be', j, p: s.entry }); return end('be', j); } ev.push({ k: 'sl', j, p: s.sl }); return end('sl', j); }
+    if (!tp1 && k.h >= s.tp1) { tp1 = true; cs = s.entry; ev.push({ k: 'tp1', j, p: s.tp1 }); }
+    if (tp1 && k.h >= s.tp2) { ev.push({ k: 'tp2', j, p: s.tp2 }); return end('tp2', j); }
+    if (j - fi >= o.maxHold) { ev.push({ k: 'timeout', j, p: k.c }); return end('timeout', j, k.c); }
+  }
+  return { status: st === 'pending' ? 'pending' : tp1 ? 'tp1' : 'active', events: ev, fi, tp1Hit: tp1, final: false, endIdx: c.length - 1, pnl: null };
+}
+
+/* Replay every past setup of this exact strategy on this coin. Win = TP1 reached before stop. */
+function backtest(X, o) {
+  const n = X.c.length, T = []; let last = -999;
+  for (let i = 210; i < n - 2; i++) {
+    if (i - last < o.cool) continue;
+    const s = detectAt(X, i, o); if (!s || s.score < o.minScore) continue;
+    last = i;
+    const r = replay(s, X.c, i + 1, o);
+    if (!r.final || r.status === 'expired' || r.status === 'missed') continue;
+    const t1 = r.events.find(e => e.k === 'tp1');
+    T.push({ win: r.tp1Hit ? 1 : 0, R: r.pnl / s.riskPct, h1: t1 ? t1.j - r.fi : null, hold: r.endIdx - r.fi, fill: r.fi - (i + 1) });
+  }
+  return { T, ...summ(T) };
+}
+
+function summ(T) {
+  const n = T.length, w = T.reduce((a, x) => a + x.win, 0), sR = T.reduce((a, x) => a + x.R, 0);
+  return { n, w, sR, wr: n ? w / n : 0, avgR: n ? sR / n : 0 };
+}
+function median(a) { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[s.length >> 1]; }
+function typicalHold(T) { const w = T.filter(x => x.h1 != null).map(x => x.h1 + 1); return w.length >= 3 ? median(w) : median(T.map(x => x.hold + 1)); }
+
+return {TF_MS,DEF,parse,prepare,detectAt,replay,backtest,summ,typicalHold};
+})();
+/* ---- SMC signals: all analysis runs in smc.mjs on GitHub Actions; this page only displays signals.json ---- */
+let SG=null;const ft=t=>new Date(t).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+const SST={pending:'⏳ Waiting for price to reach the buy zone',active:'🟢 Entry reached - trade running',tp1:'🎯 TP1 hit - stop moved to entry, rest running',tp2:'🏆 TP2 hit - closed with profit',be:'↩️ Closed at break-even after TP1',sl:'⛔ Stop-loss hit',timeout:'⌛ Max hold time - closed',expired:'⌛ Expired (zone not reached)',missed:'🚫 Missed (rushed to TP1 without entry)'};
+function togSmc(){S.po.sm=!S.po.sm;save();showPanels();if(S.po.sm)loadSmc()}
+function spm(k,v){S.sm[k]=k=='tf'?v:(+v||0);save();$('#smmsg').textContent='Saved here. Press "Copy settings for Telegram alerts" and paste into coins.json on GitHub to apply on the backend.'}
+function smSet(){const m=S.sm;$('#smset').innerHTML=[['budget','Total fund ($)'],['risk','Risk per trade (% of fund)'],['maxDay','Max signals per day (1-5)'],['minWin','Min est. win chance for Grade A (%)']].map(([k,t])=>`<label>${t}<input type="number" value="${m[k]}" oninput="spm('${k}',this.value)"></label>`).join('')+`<label>Chart<select onchange="spm('tf',this.value)">${['15m','1h','4h'].map(x=>`<option ${m.tf==x?'selected':''}>${x}</option>`).join('')}</select></label>`}
+async function loadSmc(){const m=$('#smmsg');try{const r=await fetch('signals.json?'+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;const d=await r.json();if(Date.now()-d.updated>3*36e5)throw 0;SG=d;m.textContent='';renderSmc()}catch(e){await smLocal()}}
+/* ---- SMC browser mode: runs automatically in this page when the backend file is not available ---- */
+let LS=JSON.parse(localStorage.getItem('smcL')||'null')||{signals:[]},smBusy=0;
+async function kls(sym,tf,total,forming){let out=[],end=null;while(out.length<total){const lim=Math.min(1000,total-out.length),a=await api(`/api/v3/klines?symbol=${sym}&interval=${tf}&limit=${lim}`+(end?`&endTime=${end}`:''));if(!a.length)break;out=a.concat(out);end=a[0][0]-1;if(a.length<lim)break}let c=SMC.parse(out);if(!forming){const n=Date.now();c=c.filter(x=>x.ct<n)}return c}
+async function smLocal(){if(smBusy)return;smBusy=1;const m=$('#smmsg'),M=S.sm,ms=SMC.TF_MS[M.tf]||36e5,D=SMC.DEF,O={...D,minScore:6},ev=[],fresh=[],R2=x=>Math.round(x*100)/100;
+try{
+for(const s of LS.signals.filter(x=>!x.done)){try{const c=await kls(s.sym+'USDT',s.tf,300,true),st=c.findIndex(x=>x.t>=s.candleT+(SMC.TF_MS[s.tf]||ms));if(st<0)continue;const r=SMC.replay(s,c,st,{fillBars:s.fb,maxHold:s.mh,fee:D.fee,w1:s.w1});s.status=r.status;s.done=r.final;s.tp1Hit=r.tp1Hit;s.pnl=r.final?r.pnl:null;r.events.forEach(e=>{if(!s.sent.includes(e.k)){s.sent.push(e.k);if(['tp1','tp2','sl','be','filled'].includes(e.k))ev.push(s.sym+': '+(SST[e.k]||e.k))}})}catch(e){}}
+const bc=await kls('BTCUSDT',M.tf,5,false),lastC=bc[bc.length-1].t;
+if(LS.lastScan!==lastC||!LS.market||LS.tf!==M.tf){
+m.textContent='Analysing market...';
+const all=await t24(),list=all.filter(x=>x.symbol.endsWith('USDT')&&!STB.test(x.symbol.slice(0,-4))&&+x.quoteVolume>2e7).sort((a,b)=>b.quoteVolume-a.quoteVolume).slice(0,M.top||30).map(x=>x.symbol.slice(0,-4));if(!list.includes('BTC'))list.push('BTC');
+const R=[];let dn=0;
+for(let i=0;i<list.length;i+=6)await Promise.all(list.slice(i,i+6).map(async y=>{try{const c=await kls(y+'USDT',M.tf,2000,false);if(c.length>=450){const X=SMC.prepare(c);R.push({sym:y,c,X,set:SMC.detectAt(X,c.length-1,O),bt:SMC.backtest(X,O)})}}catch(e){}m.textContent=`Analysing market ${++dn}/${list.length}...`}));
+if(R.length<5)throw 0;
+const b=R.find(r=>r.sym=='BTC');let mk='mixed';if(b){const i=b.c.length-1,cl=b.c[i].c,e5=b.X.ema50[i],e2=b.X.ema200[i];mk=cl>e5&&e5>e2?'strong':cl<e2&&e5<e2?'weak':'mixed'}
+const mf=mk=='weak'?.5:mk=='mixed'?.75:1,minSc=6+(mk=='weak'?1:0),allT=R.flatMap(r=>r.bt.T),pool=SMC.summ(allT),pw=pool.n>=20?pool.wr:.5,pR=pool.n>=20?pool.avgR:0,hP=SMC.typicalHold(allT);
+LS.pool={n:pool.n,w:pool.w,wr:Math.round(pool.wr*100),avgR:R2(pool.avgR)};LS.market=mk;
+const now=Date.now(),td=new Date(now).toDateString(),sent=LS.signals.filter(s=>new Date(s.created).toDateString()==td).length,openS=new Set(LS.signals.filter(s=>!s.done).map(s=>s.sym)),rec=new Set(LS.signals.filter(s=>now-s.created<D.cool*ms).map(s=>s.sym));
+let room=M.budget*60/100-LS.signals.filter(s=>!s.done).reduce((a,s)=>a+s.size,0),slots=Math.min(5,M.maxDay||5)-sent;
+const cand=[];for(const r of R){if(!r.set||r.set.score<minSc||openS.has(r.sym)||rec.has(r.sym))continue;const n=r.bt.n,k=6,p=(r.bt.w+k*pw)/(n+k),ex=(r.bt.sR+k*pR)/(n+k),g=n>=4&&p*100>=M.minWin&&ex>.1?'A':p*100>=55&&ex>0?'B':null;if(g)cand.push({r,p,ex,g})}
+cand.sort((a,b)=>(a.g==b.g?0:a.g=='A'?-1:1)||(b.p+b.r.set.score*.01)-(a.p+a.r.set.score*.01));
+const fb=sent==0&&new Date(now).getHours()>=14;let uB=0;
+for(const{r,p,ex,g}of cand){if(slots<=0||room<10)break;if(g=='B'&&(!fb||uB))continue;const s=r.set,rp=s.riskPct+D.fee;let size=Math.min(M.budget*.25,M.budget*M.risk/100/rp)*mf*(g=='B'?.5:1);size=Math.floor(Math.min(size,room));if(size<10)continue;const n=r.bt.n,hb=n>=3?SMC.typicalHold(r.bt.T):hP;
+const sg={id:r.sym+'-'+s.t,sym:r.sym,tf:M.tf,created:now,candleT:s.t,grade:g,score:s.score,price:s.price,zone:[s.zone.lo,s.zone.hi],entry:s.entry,now:s.now,sl:s.sl,tp1:s.tp1,tp2:s.tp2,riskPct:s.riskPct,rr:R2(s.rr1),size,qty:size/s.entry,riskUsd:R2(size*rp),tp1Usd:R2(size*((s.tp1-s.entry)/s.entry-D.fee)),conf:{p:Math.round(p*100),n,w:r.bt.w,exp:R2(ex),poolWr:LS.pool.wr,poolN:pool.n},hold:Math.max(1,Math.round((hb||12)*ms/36e5)),fb:D.fillBars,mh:D.maxHold,w1:D.w1,validUntil:s.t+ms+D.fillBars*ms,why:s.why,status:'pending',done:false,sent:['new']};
+LS.signals.push(sg);fresh.push(sg);room-=size;slots--;if(g=='B')uB++}
+LS.lastScan=lastC;LS.tf=M.tf}
+const dn2=LS.signals.filter(s=>s.done),op=LS.signals.filter(s=>!s.done),tr=LS.signals.filter(s=>s.tp1Hit||['sl','be','tp2','timeout'].includes(s.status)),w=tr.filter(s=>s.tp1Hit).length,fin=dn2.filter(s=>['sl','be','tp2','timeout'].includes(s.status));
+LS.record={n:tr.length,w,wr:tr.length?Math.round(w/tr.length*100):null,avgR:fin.length?R2(fin.reduce((a,s)=>a+s.pnl/s.riskPct,0)/fin.length):null,pnlUsd:R2(fin.reduce((a,s)=>a+s.size*s.pnl,0))};
+LS.signals=[...op,...dn2.slice(-100)].sort((a,b)=>a.created-b.created);LS.updated=Date.now();
+try{localStorage.setItem('smcL',JSON.stringify(LS))}catch(e){}
+SG={...LS,mode:'browser',cfg:{tf:M.tf,budget:M.budget,risk:M.risk,maxDay:M.maxDay,minWin:M.minWin}};m.textContent='';renderSmc();
+fresh.forEach(s=>{beep();notify('🟢 BUY signal '+s.sym,`Buy zone $${f(s.zone[0])}-$${f(s.zone[1])} | Stop $${f(s.sl)} | TP1 $${f(s.tp1)} | Invest $${s.size}`)});ev.forEach(t=>notify('SMC update',t))
+}catch(e){m.textContent='Could not load market data. Will retry automatically.'}smBusy=0}
+function sgCard(s){const c=SG.cfg||{},pc=x=>((x/s.entry-1)*100).toFixed(1),A=s.grade=='A';
+return`<div class="card sgc ${A&&!s.done?'gb':''}"><div class="h"><b>${s.sym} / USDT</b><span class="pill g${s.grade}">Grade ${s.grade}</span><span class="sc">Score ${s.score}/10 · ${s.tf} chart</span><a href="https://www.binance.com/en/trade/${s.sym}_USDT?type=spot" target="_blank" rel="noopener">Binance ↗</a></div>
+<div class="todo"><b>${SST[s.status]||s.status}</b> · signal ${ft(s.created)}</div>
+<div class="grid"><span>📥 Buy zone: <b>$${f(s.zone[0])} - $${f(s.zone[1])}</b></span><span>Limit buy at: <b>$${f(s.entry)}</b>${s.now?' (price is in zone now)':''}</span>
+<span class="dn">🛑 Stop-loss: <b>$${f(s.sl)}</b> (${pc(s.sl)}%)</span><span>Risk if stopped: <b class="dn">$${s.riskUsd}</b></span>
+<span class="up">🎯 TP1: <b>$${f(s.tp1)}</b> (+${pc(s.tp1)}%) sell 70%</span><span class="up">🎯 TP2: <b>$${f(s.tp2)}</b> (+${pc(s.tp2)}%) sell rest</span>
+<span>💰 Invest: <b>$${s.size}</b> (${(s.size/(c.budget||1000)*100).toFixed(0)}% of fund)</span><span>Profit at TP1: <b class="up">+$${s.tp1Usd}</b> (R:R ${s.rr})</span>
+<span>⏱ Order valid until: <b>${ft(s.validUntil)}</b></span><span>Typical hold: <b>~${s.hold}h</b> · max ${Math.round(s.mh*({'15m':.25,'1h':1,'4h':4}[s.tf]||1))}h</span></div>
+<div class="foot" style="margin:6px 0">Estimated win chance <b>~${s.conf.p}%</b> (past setups on ${s.sym}: ${s.conf.w} of ${s.conf.n} won; all coins: ${s.conf.poolWr}% of ${s.conf.poolN}). An estimate from history, not a promise.</div>
+<details><summary>Why this setup</summary><ul class="why">${s.why.map(x=>'<li>'+x+'</li>').join('')}</ul></details>
+<div class="row"><button class="sm" onclick="addCoin('${s.sym}')">+ Add to my coins</button></div></div>`}
+function renderSmc(){const d=SG,o=d.signals.filter(s=>!s.done),h=d.signals.filter(s=>s.done&&!['expired','missed'].includes(s.status)).slice(-15).reverse(),R=d.record||{},P=d.pool||{},c=d.cfg||{},today=new Date().toDateString(),nt=d.signals.filter(s=>new Date(s.created).toDateString()==today).length,
+mk={strong:['g','HEALTHY - Bitcoin trend up'],mixed:['','MIXED - Bitcoin sideways (sizes cut 25%)'],weak:['rd','WEAK - Bitcoin falling (sizes cut 50%, stricter filter)']}[d.market]||['',''];
+$('#smout').innerHTML=`<div class="todo"><b>Market:</b> <span class="${mk[0]}">${mk[1]}</span> · signals today: <b>${nt}/${c.maxDay||5}</b> · updated ${ft(d.updated)} · mode: <b>${d.mode=='browser'?'automatic in this page (keep it open)':'backend 24/7'}</b></div>
+<div class="sumb"><b>Track record (live, since this bot started)</b><br>${R.n?`Trades: <b>${R.n}</b> · TP1 reached: <b>${R.w}</b> · win rate <b class="${R.wr>=50?'up':'dn'}">${R.wr}%</b>${R.avgR!=null?` · avg result ${R.avgR>=0?'+':''}${R.avgR}R · closed P/L <b class="${R.pnlUsd>=0?'up':'dn'}">${R.pnlUsd>=0?'+':''}$${R.pnlUsd}</b>`:''}`:'No finished trades yet. Be patient - quality over quantity.'}<br><span class="dim">Backtest of the same rules on all scanned coins: ${P.w||0} of ${P.n||0} won (${P.wr||0}%), avg ${P.avgR>=0?'+':''}${P.avgR||0}R per trade. Real results can be lower than backtests.</span></div>
+${o.length?o.map(sgCard).join(''):'<div class="card sgc"><div class="sc" style="padding:8px">No active signal right now. The bot only sends a signal when structure, order block, liquidity and history all agree. Waiting is also a position.</div></div>'}
+${h.length?`<details open><summary>Finished signals</summary><div style="overflow-x:auto"><table><tr><th>Coin</th><th>Date</th><th>Grade</th><th>Entry</th><th>Result</th><th>P/L</th></tr>${h.map(s=>`<tr><td><b>${s.sym}</b></td><td>${ft(s.created)}</td><td>${s.grade}</td><td>$${f(s.entry)}</td><td>${SST[s.status]}</td><td class="${s.pnl>=0?'up':'dn'}">${s.pnl==null?'-':(s.pnl>=0?'+':'')+(s.size*s.pnl).toFixed(2)+'$'}</td></tr>`).join('')}</table></div></details>`:''}
+<div class="foot">How it works (all on the backend): every new ${c.tf||'1h'} candle the bot scans the top USDT coins with Smart Money Concepts: market structure (BOS/CHoCH), order blocks, fair value gaps, liquidity sweeps and premium/discount zones. Spot, buy-only. It then replays the same rules on ~80 days of history; only setups whose estimated win chance passes your filter are sent (max ${c.maxDay||5}/day). Fund size = risk% of your fund / stop distance, reduced when Bitcoin is weak. This is analysis, not a guarantee - never invest money you cannot afford to lose.</div>`}
+$('#iv').value=S.iv;draw();connect();poll();reloadAll();smSet();setTimeout(loadSmc,1500);setInterval(()=>{if(!document.hidden)loadSmc()},120000);
+$('#ar').value=S.ar;$('#nt').textContent=window.Notification&&Notification.permission=='granted'?'(on)':'';plSet();showPanels();setInterval(tick,1000);setInterval(poll,4000);setInterval(reloadAll,60000);setInterval(stat,1000);
+</script></body></html>
